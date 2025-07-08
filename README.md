@@ -19,7 +19,7 @@ source venv/bin/activate         # On Windows: venv\Scripts\activate
 
 # Install Python dependencies for producer / consumer & load testing
 pip install -r requirements.txt
-
+````
 
 ---
 
@@ -29,7 +29,7 @@ pip install -r requirements.txt
 # Build inference image & launch everything
 docker compose build
 docker compose up -d  # inference, redpanda, prometheus, grafana
-````
+```
 
 Services started:
 
