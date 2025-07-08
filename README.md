@@ -31,6 +31,12 @@ docker compose build
 docker compose up -d  # inference, redpanda, prometheus, grafana
 ```
 
+For running on GPU you've to set env variable in inference_service of docker-compose.yml
+```bash
+environment:
+  - USE_GPU=true
+```
+
 Services started:
 
 | Service           | Purpose                                    | Ports             |
