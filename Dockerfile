@@ -7,15 +7,18 @@ WORKDIR /workspace
 # Install curl and other tools
 RUN apt-get update && apt-get install -y curl
 
+
 # Install only needed extras
 RUN pip install --no-cache-dir grpcio-tools onnx
 
-COPY inference_service /workspace/inference_service
+# Copy required files for ONNX export and proto generation
+COPY inference_service/model/export_to_onnx.py /workspace/inference_service/model/export_to_onnx.py
+COPY inference_service/image_infer.proto /workspace/inference_service/image_infer.proto
+COPY inference_service/requirements.txt /workspace/inference_service/requirements.txt
+COPY inference_service/server.py /workspace/inference_service/server.py
 
 RUN --mount=type=cache,target=/root/.cache \
     python inference_service/model/export_to_onnx.py
-    
-
 
 # Download ImageNet classes
 RUN curl -sSL https://raw.githubusercontent.com/pytorch/hub/refs/heads/master/imagenet_classes.txt \
@@ -30,9 +33,7 @@ RUN mkdir -p proto && \
 
 RUN touch /workspace/inference_service/proto/__init__.py
 
-# test if the model is exported correctly ising ls
-RUN ls -l /workspace/inference_service/model/
-
+# test if the model is exported correctly
 RUN test -f /workspace/inference_service/model/resnet18.onnx
 
 

@@ -2,15 +2,13 @@
 
 ![image](https://github.com/user-attachments/assets/398fe4a0-fbba-41be-ad7e-db38b7f4ae3d)
 
-
-
 A step‑by‑step guide to spin up a full real‑time image‑classification stack using PyTorch (ONNX), Docker, gRPC, and Redpanda.
 
 ---
 
 ## 📦 Step 1 – Clone & Install Host Dependencies
 
-```bash
+````bash
 # Clone the repository
 git clone https://github.com/YOUR_USER/kookree-pipeline.git
 cd kookree-pipeline
@@ -31,7 +29,7 @@ pip install -r requirements.txt
 # Build inference image & launch everything
 docker compose build
 docker compose up -d  # inference, redpanda, prometheus, grafana
-```
+````
 
 Services started:
 
@@ -86,6 +84,7 @@ or alternatively if you want to change default parameters
 python streaming_simulator/run_streaming.py     --source 0     --fps 15     --bootstrap localhost:9092     --grpc localhost:50051     --window 30
 ```
 
+It will open your webcam and start streaming frames to redpanda.
 After 30 s you’ll see an FPS / latency summary in the terminal and in `logs/`.
 
 ---
