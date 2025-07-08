@@ -1,5 +1,9 @@
 # Kookree Real‑Time Image Classification Pipeline
 
+![image](https://github.com/user-attachments/assets/398fe4a0-fbba-41be-ad7e-db38b7f4ae3d)
+
+
+
 A step‑by‑step guide to spin up a full real‑time image‑classification stack using PyTorch (ONNX), Docker, gRPC, and Redpanda.
 
 ---
@@ -7,11 +11,17 @@ A step‑by‑step guide to spin up a full real‑time image‑classification st
 ## 📦 Step 1 – Clone & Install Host Dependencies
 
 ```bash
+# Clone the repository
 git clone https://github.com/YOUR_USER/kookree-pipeline.git
 cd kookree-pipeline
-# Install Python deps for producer / consumer & load test
+
+# (Optional but recommended) Create and activate a virtual environment
+python -m venv venv
+source venv/bin/activate         # On Windows: venv\Scripts\activate
+
+# Install Python dependencies for producer / consumer & load testing
 pip install -r requirements.txt
-```
+
 
 ---
 
