@@ -10,6 +10,12 @@
 #   chmod +x gen_proto.sh
 #   ./gen_proto.sh
 #
+# NOTE: If you are using a Python virtual environment (venv),
+#       make sure to activate it before running this script:
+#           source <venv_dir>/bin/activate   # on Linux/Mac
+#           <venv_dir>\Scripts\activate     # on Windows
+#       Otherwise, grpc_tools may not be found.
+#
 PROTO_FILE="inference_service/image_infer.proto"
 OUT_DIR="streaming_simulator/proto"
 

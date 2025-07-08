@@ -1,20 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 """
-Frame‑producer for Kookree assignment.
+Frame-producer for Kookree assignment.
 
 Features
 --------
-• Reads webcam **or** video file.
-• Encodes each frame to JPEG.
+• Reads webcam **or** video file as input source.
+• Encodes each frame to JPEG format.
 • Publishes raw JPEG bytes to a Kafka / Redpanda topic.
-• Optional FPS throttling.
+• Optional FPS throttling for rate control.
 • Logs to console and to `logs/producer/<timestamp>.log`.
 
 Example
 -------
-$ python producer.py --source 0 --fps 15 \
-    --bootstrap localhost:9092 --topic frames
+    $ python producer.py --source 0 --fps 15 \
+        --bootstrap localhost:9092 --topic frames
+
+Arguments:
+    --source     Video file path or camera index (default 0)
+    --fps        Optional frame rate limit (e.g. 30)
+    --bootstrap  Redpanda/Kafka bootstrap servers
+    --topic      Topic name to publish to
 """
 
 from __future__ import annotations
@@ -27,50 +34,61 @@ from pathlib import Path
 from kafka import KafkaProducer
 
 
+timestamp: str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
 # ──────────────────────────────────────────────────────────────────────────
 # Logging setup
 # ──────────────────────────────────────────────────────────────────────────
-LOG_DIR: Path = Path(__file__).parent / "logs" / "producer"
-LOG_DIR.mkdir(parents=True, exist_ok=True)
-
-log: logging.Logger = logging.getLogger("producer")
-log.setLevel(logging.INFO)
-
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(logging.Formatter("[*] %(message)s"))
-
-timestamp: str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-log_file: Path = LOG_DIR / f"{timestamp}.log"
-file_handler = logging.FileHandler(log_file)
-file_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
-
-log.addHandler(console_handler)
-log.addHandler(file_handler)
+def setup_logger() -> logging.Logger:
+    """Configure and return a logger for the producer."""
+    log_dir = Path(__file__).parent / "logs" / "producer"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    logger = logging.getLogger("producer")
+    logger.setLevel(logging.INFO)
+    # Console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(logging.Formatter("[*] %(message)s"))
+    # File handler
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    log_file = log_dir / f"{timestamp}.log"
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
+    logger.handlers.clear()
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+    return logger
 
 
 # ──────────────────────────────────────────────────────────────────────────
 # Main entry
 # ──────────────────────────────────────────────────────────────────────────
+
 def main() -> None:
-    """CLI entry‑point."""
+    """
+    CLI entry‑point for the frame producer. Opens the video/camera source, encodes frames,
+    sends them to Kafka/Redpanda, and logs activity. Supports FPS throttling and live preview.
+    """
     parser = argparse.ArgumentParser(description="Video / camera frame producer")
     parser.add_argument("--source", default="0",
                         help="Video file path or camera index (default 0)")
     parser.add_argument("--fps", type=float,
                         help="Optional frame‑rate limit (e.g. 30)")
     parser.add_argument("--bootstrap", default="localhost:9092",
-                        help="Kafka/Redpanda bootstrap servers")
+                        help="Redpanda bootstrap servers")
     parser.add_argument("--topic", default="frames",
                         help="Topic name to publish to")
     args = parser.parse_args()
 
-    # open capture
+    log = setup_logger()
+
+    # Open video/camera source
     src = int(args.source) if args.source.isdigit() else args.source
     cap: cv2.VideoCapture = cv2.VideoCapture(src)
     if not cap.isOpened():
         log.error("[!] Cannot open source %s", args.source)
         return
 
+    # Initialize Kafka producer
     producer: KafkaProducer = KafkaProducer(
         bootstrap_servers=args.bootstrap,
         linger_ms=5,
@@ -89,22 +107,23 @@ def main() -> None:
                 log.info("[!] End of stream or read error; exiting")
                 break
 
-            # Show live webcam video
+            # Show live webcam video (press 'q' to exit)
             cv2.imshow("Live Webcam", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 log.info("[!] 'q' pressed, exiting")
                 break
 
-            ok, buf = cv2.imencode(".jpg", frame,
-                                   [int(cv2.IMWRITE_JPEG_QUALITY), 90])
+            # Encode frame as JPEG
+            ok, buf = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
             if not ok:
                 log.warning("[!] JPEG encode failed; skipping frame")
                 continue
 
+            # Send JPEG bytes to Kafka/Redpanda
             producer.send(args.topic, buf.tobytes())
             log.info("[+] Frame sent (%d bytes)", len(buf))
 
-            # FPS throttling
+            # FPS throttling (if enabled)
             if frame_interval:
                 now: float = time.time()
                 time.sleep(max(0.0, frame_interval - (now - last_sent)))

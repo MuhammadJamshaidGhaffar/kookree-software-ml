@@ -1,10 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 """
 gRPC ONNX Inference Microservice
-• /healthz  – readiness probe (port 8080)
-• /metrics  – Prometheus metrics (port 8000)
-• gRPC      – ClassifyImage on port 50051
+
+Features
+--------
+• /healthz  – HTTP readiness probe (port 8080)
+• /metrics  – Prometheus metrics (port 8000)
+• gRPC      – ClassifyImage on port 50051
+• Prometheus histogram for latency (industry standard)
+• Logs to console and file
+
+Usage:
+    python server.py
 """
 
 import os
@@ -20,7 +29,7 @@ import numpy as np
 import onnxruntime as ort
 from concurrent import futures
 
-from prometheus_client import start_http_server, Counter, Gauge
+from prometheus_client import start_http_server, Counter, Histogram
 
 import sys
 
@@ -34,8 +43,12 @@ REQUEST_COUNT   = Counter(  "inference_requests_total",
                             "Total gRPC inference requests")
 REQUEST_ERRORS  = Counter(  "inference_request_errors_total",
                             "Total inference errors")
-AVG_LATENCY_GAUGE = Gauge("inference_avg_latency_seconds",
-                          "Average latency per inference request (seconds)")
+# Histogram buckets: 0.05s, 0.1s, 0.2s, 0.5s, 1s, 2s (50ms, 100ms, 200ms, 500ms, 1s, 2s)
+INFERENCE_LATENCY_HISTOGRAM = Histogram(
+    "inference_latency_seconds",
+    "Inference request latency in seconds",
+    buckets=[0.05, 0.1, 0.2, 0.5, 1, 2]
+)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Logging
@@ -117,20 +130,24 @@ def preprocess(img_bytes: bytes) -> np.ndarray:
 # ──────────────────────────────────────────────────────────────────────────────
 # gRPC Servicer
 # ──────────────────────────────────────────────────────────────────────────────
+
+# ──────────────────────────────────────────────────────────────────────────────
+# gRPC Inference Servicer
+# ──────────────────────────────────────────────────────────────────────────────
 class InferenceServicer(image_infer_pb2_grpc.InferenceServicer):
     def __init__(self):
+        """Initialize ONNX session and providers."""
         prefer_gpu = os.getenv("USE_GPU", "false").lower() == "true"
-        providers  = ["CUDAExecutionProvider", "CPUExecutionProvider"] \
-                     if prefer_gpu else ["CPUExecutionProvider"]
-
-        self.session    = ort.InferenceSession(
-                            "model/resnet18.onnx",
-                            providers=providers)
+        providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if prefer_gpu else ["CPUExecutionProvider"]
+        self.session = ort.InferenceSession("model/resnet18.onnx", providers=providers)
         self.input_name = self.session.get_inputs()[0].name
         log.info("[+] ONNX providers: %s", self.session.get_providers())
-        self.latencies = []
 
     def ClassifyImage(self, request, context):
+        """
+        Handle gRPC image classification request.
+        Records latency in Prometheus histogram and returns label + latency.
+        """
         REQUEST_COUNT.inc()
         start_time = time.time()
         try:
@@ -138,23 +155,19 @@ class InferenceServicer(image_infer_pb2_grpc.InferenceServicer):
             logits = self.session.run(None, {self.input_name: x})[0]
             idx = int(np.argmax(logits))
             label = CLASS_NAMES[idx]
-            log.info("[+] Predicted: %s", label)
-            return image_infer_pb2.ImageResponse(label=label)
-
+            latency = time.time() - start_time
+            INFERENCE_LATENCY_HISTOGRAM.observe(latency)
+            log.info("[+] Predicted: %s | Inference latency: %.4f s", label, latency)
+            return image_infer_pb2.ImageResponse(label=label, latency=latency)
         except Exception as e:
             REQUEST_ERRORS.inc()
             log.error("[!] Inference error: %s", e)
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details("Inference failed")
-            return image_infer_pb2.ImageResponse(label="error")
-        finally:
-            latency = time.time() - start_time
-            self.latencies.append(latency)
-            # Keep only the last 100 latencies for a rolling average
-            if len(self.latencies) > 100:
-                self.latencies.pop(0)
-            avg_latency = sum(self.latencies) / len(self.latencies)
-            AVG_LATENCY_GAUGE.set(avg_latency)
+            return image_infer_pb2.ImageResponse(label="error", latency=0.0)
+            
+
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Entrypoint

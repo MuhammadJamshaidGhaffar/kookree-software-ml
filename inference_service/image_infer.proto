@@ -12,4 +12,5 @@ message ImageRequest {
 
 message ImageResponse {
   string label = 1;        // class index as string
+  float latency = 2; // Inference time in seconds (server-side)
 }

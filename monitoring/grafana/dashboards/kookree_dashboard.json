@@ -11,20 +11,30 @@
     {
       "id": 1,
       "type": "timeseries",
-      "title": "Inference Latency (Average, seconds)",
-      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "title": "Inference Latency (Server, p95, ms)",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 6 },
       "datasource": "Prometheus",
       "targets": [
         {
-          "expr": "inference_avg_latency_seconds",
-          "legendFormat": "avg latency",
+          "expr": "1000 * histogram_quantile(0.5, sum(rate(inference_latency_seconds_bucket[30s])) by (le))",
+          "legendFormat": "p50 latency (ms)",
           "refId": "A"
+        },
+        {
+          "expr": "1000 * histogram_quantile(0.95, sum(rate(inference_latency_seconds_bucket[30s])) by (le))",
+          "legendFormat": "p95 latency (ms)",
+          "refId": "B"
+        },
+        {
+          "expr": "1000 * histogram_quantile(0.99, sum(rate(inference_latency_seconds_bucket[30s])) by (le))",
+          "legendFormat": "p99 latency (ms)",
+          "refId": "C"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "s",
-          "decimals": 3
+          "unit": "ms",
+          "decimals": 1
         }
       }
     },
@@ -32,11 +42,11 @@
       "id": 2,
       "type": "timeseries",
       "title": "Inference Requests per Second",
-      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 6 },
       "datasource": "Prometheus",
       "targets": [
         {
-          "expr": "rate(inference_requests_total[10s])",
+          "expr": "rate(inference_requests_total[15s])",
           "legendFormat": "req/s",
           "refId": "A"
         }
@@ -44,14 +54,15 @@
     },
     {
       "id": 3,
-      "type": "stat",
-      "title": "Streaming FPS (Current)",
-      "gridPos": { "x": 0, "y": 8, "w": 6, "h": 6 },
+      "type": "timeseries",
+      "title": "Streaming FPS",
+      "gridPos": { "x": 0, "y": 6, "w": 12, "h": 6 },
       "datasource": "Prometheus",
       "targets": [
         {
-          "expr": "streaming_consumer_fps",
-          "refId": "A"
+          "expr": "rate(streaming_consumer_frames_total[15s])",
+          "refId": "A",
+          "legendFormat": "Frames/s"
         }
       ],
       "fieldConfig": {
@@ -61,62 +72,44 @@
         }
       }
     },
+
     {
       "id": 4,
       "type": "timeseries",
-      "title": "Streaming Frames per Second",
-      "gridPos": { "x": 6, "y": 8, "w": 6, "h": 6 },
-      "datasource": "Prometheus",
-      "targets": [
-        {
-          "expr": "streaming_consumer_fps",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "fps",
-          "decimals": 1
-        }
-      }
-    },
-    {
-      "id": 5,
-      "type": "timeseries",
       "title": "Inference Errors per Second",
-      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "gridPos": { "x": 12, "y": 6, "w": 12, "h": 6 },
       "datasource": "Prometheus",
       "targets": [
         {
-          "expr": "rate(inference_request_errors_total[1m])",
+          "expr": "rate(inference_request_errors_total[15s])",
           "legendFormat": "errors/s",
           "refId": "A"
         }
       ]
     },
     {
-      "id": 6,
+      "id": 5,
       "type": "timeseries",
       "title": "Streaming Failures per Second",
-      "gridPos": { "x": 0, "y": 14, "w": 12, "h": 8 },
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 6 },
       "datasource": "Prometheus",
       "targets": [
         {
-          "expr": "rate(streaming_consumer_failures_total[1m])",
+          "expr": "rate(streaming_consumer_failures_total[15s])",
           "legendFormat": "fails/s",
           "refId": "A"
         }
       ]
     },
     {
-      "id": 7,
+      "id": 6,
       "type": "stat",
       "title": "Inference Error Rate (%)",
-      "gridPos": { "x": 12, "y": 14, "w": 12, "h": 8 },
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 6 },
       "datasource": "Prometheus",
       "targets": [
         {
-          "expr": "100 * rate(inference_request_errors_total[5m]) / rate(inference_requests_total[5m])",
+          "expr": "100 * rate(inference_request_errors_total[15s]) / rate(inference_requests_total[15s])",
           "refId": "A"
         }
       ],
