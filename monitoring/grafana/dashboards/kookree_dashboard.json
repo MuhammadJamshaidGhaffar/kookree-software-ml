@@ -1,0 +1,139 @@
+{
+  "id": null,
+  "uid": "kookree-dashboard",
+  "title": "Kookree Image-Classification Service",
+  "tags": ["kookree", "inference"],
+  "schemaVersion": 39,
+  "version": 2,
+  "refresh": "5s",
+  "timezone": "browser",
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Inference Latency (Average, seconds)",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "inference_avg_latency_seconds",
+          "legendFormat": "avg latency",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 3
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Inference Requests per Second",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(inference_requests_total[10s])",
+          "legendFormat": "req/s",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Streaming FPS (Current)",
+      "gridPos": { "x": 0, "y": 8, "w": 6, "h": 6 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "streaming_consumer_fps",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "fps",
+          "decimals": 1
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Streaming Frames per Second",
+      "gridPos": { "x": 6, "y": 8, "w": 6, "h": 6 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "streaming_consumer_fps",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "fps",
+          "decimals": 1
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Inference Errors per Second",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(inference_request_errors_total[1m])",
+          "legendFormat": "errors/s",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Streaming Failures per Second",
+      "gridPos": { "x": 0, "y": 14, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(streaming_consumer_failures_total[1m])",
+          "legendFormat": "fails/s",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Inference Error Rate (%)",
+      "gridPos": { "x": 12, "y": 14, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "100 * rate(inference_request_errors_total[5m]) / rate(inference_requests_total[5m])",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              { "color": "green" },
+              { "value": 1, "color": "yellow" },
+              { "value": 5, "color": "red" }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+  inference_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "50051:50051"
+      - "8080:8080"
+      - "8000:8000"
+    networks:
+      - monitor_net
+
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v25.1.7
+    command: redpanda start --smp 1 --memory 1G --overprovisioned --node-id 0 \
+      --check=false \
+      --kafka-addr PLAINTEXT://0.0.0.0:9092 \
+      --advertise-kafka-addr PLAINTEXT://localhost:9092
+    ports:
+      - "9092:9092"
+      - "9644:9644"
+    networks:
+      - monitor_net
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - monitor_net
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - monitor_net
+
+networks:
+  monitor_net:
+    driver: bridge

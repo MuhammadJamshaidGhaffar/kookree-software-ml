@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package infer;
+
+service Inference {
+  rpc ClassifyImage (ImageRequest) returns (ImageResponse);
+}
+
+message ImageRequest {
+  bytes image = 1;         // JPEG / PNG bytes
+}
+
+message ImageResponse {
+  string label = 1;        // class index as string
+}

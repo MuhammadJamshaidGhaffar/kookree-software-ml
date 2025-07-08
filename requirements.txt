@@ -1,0 +1,20 @@
+# Kafka client
+kafka-python
+
+# gRPC for calling inference server
+grpcio
+
+# OpenCV for reading & encoding frames (producer only)
+# opencv-python-headless
+opencv-python
+
+# For proto imports (used in consumer)
+protobuf
+
+numpy
+
+prometheus-client
+
+grpcio-tools
+
+# (Optional) logging enhancements or extras can go here

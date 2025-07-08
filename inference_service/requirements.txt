@@ -1,0 +1,5 @@
+grpcio
+onnxruntime-gpu
+numpy
+opencv-python-headless
+prometheus-client
