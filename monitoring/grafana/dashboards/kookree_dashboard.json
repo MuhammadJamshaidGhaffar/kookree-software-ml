@@ -13,7 +13,7 @@
       "type": "timeseries",
       "title": "Inference Latency (Server, p95, ms)",
       "gridPos": { "x": 0, "y": 0, "w": 12, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": "prometheus",
       "targets": [
         {
           "expr": "1000 * histogram_quantile(0.5, sum(rate(inference_latency_seconds_bucket[30s])) by (le))",
@@ -43,7 +43,7 @@
       "type": "timeseries",
       "title": "Inference Requests per Second",
       "gridPos": { "x": 12, "y": 0, "w": 12, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": "prometheus",
       "targets": [
         {
           "expr": "rate(inference_requests_total[15s])",
@@ -57,7 +57,7 @@
       "type": "timeseries",
       "title": "Streaming FPS",
       "gridPos": { "x": 0, "y": 6, "w": 12, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": "prometheus",
       "targets": [
         {
           "expr": "rate(streaming_consumer_frames_total[15s])",
@@ -78,7 +78,7 @@
       "type": "timeseries",
       "title": "Inference Errors per Second",
       "gridPos": { "x": 12, "y": 6, "w": 12, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": "prometheus",
       "targets": [
         {
           "expr": "rate(inference_request_errors_total[15s])",
@@ -92,7 +92,7 @@
       "type": "timeseries",
       "title": "Streaming Failures per Second",
       "gridPos": { "x": 0, "y": 12, "w": 12, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": "prometheus",
       "targets": [
         {
           "expr": "rate(streaming_consumer_failures_total[15s])",
@@ -106,7 +106,7 @@
       "type": "stat",
       "title": "Inference Error Rate (%)",
       "gridPos": { "x": 12, "y": 12, "w": 12, "h": 6 },
-      "datasource": "Prometheus",
+      "datasource": "prometheus",
       "targets": [
         {
           "expr": "100 * rate(inference_request_errors_total[15s]) / rate(inference_requests_total[15s])",

@@ -1,6 +1,6 @@
 # Kookree Real‑Time Image Classification Pipeline
 
-A step‑by‑step guide to spin up a full real‑time image‑classification stack using PyTorch (ONNX), Docker, gRPC, and Redpanda.
+A step‑by‑step guide to spin up a full real‑time image‑classification stack using PyTorch (ONNX), Docker, gRPC, and Redpanda.
 
 ---
 
@@ -19,8 +19,8 @@ pip install -r requirements.txt
 
 ```bash
 # Build inference image & launch everything
-docker compose build           # multi‑stage build
-docker compose up -d                             # inference, redpanda, prometheus, grafana
+docker compose build
+docker compose up -d  # inference, redpanda, prometheus, grafana
 ```
 
 Services started:
@@ -40,51 +40,84 @@ curl http://localhost:8080/healthz   # → OK
 
 ---
 
-## 🎥 Step 3 – Start Streaming Simulator
+## 🧾 Step 3 – Generate Python gRPC Stubs
+
+Before running the streaming simulator, generate Python gRPC client files for `image_infer.proto`:
+
+```bash
+chmod +x gen_proto.sh
+./gen_proto.sh
+```
+
+This creates `streaming_simulator/proto/` with:
+
+```
+proto/
+├── __init__.py
+├── image_infer_pb2.py
+└── image_infer_pb2_grpc.py
+```
+
+> ⚠️ This step is required for gRPC client code to import `image_infer_pb2` and `image_infer_pb2_grpc` properly.
+
+---
+
+## 🎥 Step 4 – Start Streaming Simulator
 
 Launch producer (webcam 0, 15 FPS) **and** consumer in one command:
 
 ```bash
-python streaming_simulator/run_streaming.py \
-    --source 0 \
-    --fps 15 \
-    --bootstrap localhost:9092 \
-    --grpc localhost:50051 \
-    --window 30
+python streaming_simulator/run_streaming.py
+```
+
+or alternatively if you want to change default parameters
+
+```bash
+python streaming_simulator/run_streaming.py     --source 0     --fps 15     --bootstrap localhost:9092     --grpc localhost:50051     --window 30
 ```
 
 After 30 s you’ll see an FPS / latency summary in the terminal and in `logs/`.
 
 ---
 
-## 🧪 Step 4 – Load‑test the gRPC Endpoint (optional)
+## 🧪 Step 5 – Load‑test the gRPC Endpoint (optional)
 
 ```bash
-python tests/load_test_grpc.py \
-    --grpc localhost:50051 \
-    --requests 200 \
-    --concurrency 20
+python tests/load_test_grpc.py     --grpc localhost:50051     --requests 200     --concurrency 20
 ```
 
 Outputs total throughput, avg latency, and sample label.
 
 ---
 
-## 📈 Monitoring (optional)
+## 📈Step 6 – Monitoring (optional)
 
 ### Prometheus
 
 - Inference metrics: <http://localhost:8000/metrics>
 - Consumer metrics: <http://localhost:9100/metrics>
-
-Prometheus UI: <http://localhost:9090>
+- Prometheus UI: <http://localhost:9090>
 
 ### Grafana Dashboard
 
-1. Open <http://localhost:3000> (admin / admin)
-2. **Dashboards → Import → Upload JSON**
-3. Select `monitoring/grafana/dashboards/kookree_dashboard.json`
-4. Click **Import** to visualise latency, FPS, errors, etc.
+1. Open Grafana: <http://localhost:3000>  
+   _(Login with `admin` / `admin`, then change password if prompted)_
+
+2. 👉 **First, add a data source**:
+
+   - Go to **⚙️ Settings → Data Sources**
+   - Click **"Add data source"**
+   - Choose **"Prometheus"**
+   - Set URL to: `http://prometheus:9090`
+   - Click **"Save & test"** — it should connect successfully.
+
+3. Now, **import the dashboard**:
+   - Go to **Dashboards → Import → Upload JSON**
+   - Select: `monitoring/grafana/dashboards/kookree_dashboard.json`
+   - Choose the **Prometheus** data source you just added
+   - Click **Import**
+
+You should now see latency, FPS, error rates, and other metrics live in Grafana.
 
 ---
 
@@ -105,15 +138,10 @@ Each run creates fresh timestamped logs for traceability.
 
 Enable caching of Torch download:
 
-```dockerfile
-RUN --mount=type=cache,target=/root/.cache \
-    python inference_service/model/export_to_onnx.py
-```
-
 Re‑build:
 
 ```bash
-docker compose build --no-cache   # if needed
+docker compose build
 ```
 
 ---
@@ -125,5 +153,3 @@ docker compose build --no-cache   # if needed
 | Redpanda not ready    | `docker compose logs redpanda`              |
 | Camera not accessible | Run `producer.py` on host, not in container |
 | gRPC errors           | Check `inference_service.log`               |
-
----
