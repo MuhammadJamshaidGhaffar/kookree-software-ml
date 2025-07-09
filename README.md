@@ -10,7 +10,7 @@ A step‑by‑step guide to spin up a full real‑time image‑classification st
 
 ````bash
 # Clone the repository
-git clone https://github.com/YOUR_USER/kookree-pipeline.git
+git clone https://github.com/MuhammadJamshaidGhaffar/kookree-software-ml.git
 cd kookree-pipeline
 
 # (Optional but recommended) Create and activate a virtual environment
